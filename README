@@ -1,0 +1,29 @@
+
+===================
+Reflow gedit plugin
+===================
+
+This plugin allows to automatically format paragraphs using gedit margin width.
+This is similar to emacs <alt>-q command that I love so much.
+
+
+Install
+-------
+
+Copy the files reflow.gedit-plugin and reflow.py into your gedit plugin
+directory (on ubuntu this is ~/.gnome2/gedit/plugins/), then restart gedit.
+
+
+Usage
+-----
+
+After installation a new command 'Reflow' is available in the edit menu.  You
+can also directly use <alt>-q.  Use this command anywhere in the document to
+automatically format the current paragraph.
+
+
+Contact
+-------
+
+Guillaume Chereau <guillaume.chereau@gmail.com>
+
