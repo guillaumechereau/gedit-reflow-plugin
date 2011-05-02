@@ -102,7 +102,27 @@ class ReflowWindowHelper:
         begin, end = self._get_paragraph()
         if begin == end:
             return
-        splits = [self._split(self._get_line(i)) for i in range(begin, end)]
+        # We first reflow up to the cursor location, just to get the number of
+        # characters from the beginning till the cursor.
+        document = self._window.get_active_document()
+        insert_mark = document.get_insert()
+        insert_iter = document.get_iter_at_mark(insert_mark)
+        before_text = document.get_iter_at_line(begin).get_text(insert_iter)
+        text = self._fill(before_text)
+        insert_pos = len(text) # We use it later to restore the cursor pos.
+        # Fill all the lines in the paragraph
+        lines = [self._get_line(i) for i in range(begin, end)]
+        text = self._fill("\n".join(lines))
+        self._replace(begin, end, text)
+        # Restore the cursor pos.
+        # XXX: there is a bug if the cursor was after a space.
+        cursor_iter = document.get_iter_at_line(begin)
+        cursor_iter.forward_chars(insert_pos)
+        document.place_cursor(cursor_iter)
+
+    def _fill(self, text):
+        lines = text.splitlines()
+        splits = [self._split(x) for x in lines]
         lines = [x[1].strip() for x in splits]
         text = '\n'.join(lines)
         first_prefix = splits[0][0]
@@ -110,8 +130,9 @@ class ReflowWindowHelper:
         text = textwrap.fill(text,
                              width = get_gedit_margin(),
                              initial_indent=first_prefix,
-                             subsequent_indent=prefix)
-        self._replace(begin, end, text)
+                             subsequent_indent=prefix,
+                             drop_whitespace=True)
+        return text
 
     def _get_line(self, index):
         document = self._window.get_active_document()
