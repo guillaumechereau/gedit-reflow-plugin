@@ -170,8 +170,11 @@ class ReflowWindowHelper:
         document = self._window.get_active_document()
         document.begin_user_action()
         begin_iter = document.get_iter_at_line(begin)
-        end_iter = document.get_iter_at_line(end)
-        end_iter.backward_char()
+        if end >= document.get_line_count():
+            end_iter = document.get_end_iter()
+        else:
+            end_iter = document.get_iter_at_line(end)
+            end_iter.backward_char()
         document.delete(begin_iter, end_iter)
         document.insert(begin_iter, text)
         document.end_user_action()
