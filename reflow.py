@@ -18,9 +18,7 @@
 #  You should have received a copy of the GNU General Public License along with
 #  this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import gedit
-import gconf
-import gtk
+from gi.repository import GObject, Gedit, Gtk
 import re
 import textwrap
 
@@ -34,42 +32,19 @@ ACCELERATOR = '<Alt>q'
 # Simple to start.
 FILL_REGEX = r'^([#\*"/\-\+]*\s*)+'
 
-class ReflowPlugin(gedit.Plugin):
+class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
+
+    __gtype_name__ = "ReflowPlugin"
+    window = GObject.property(type=Gedit.Window)
+
     def __init__(self):
-        gedit.Plugin.__init__(self)
-        self._instances = {}
+        GObject.Object.__init__(self)
 
-    def activate(self, window):
-        self._instances[window] = ReflowWindowHelper(self, window)
-        self._instances[window].activate()
-
-    def deactivate(self, window):
-        self._instances[window].deactivate()
-        del self._instances[window]
-
-    def update_ui(self, window):
-        self._instances[window].update_ui()
-
-
-class ReflowWindowHelper:
-    def __init__(self, plugin, window):
-        print "Plugin created for", window
-        self._window = window
-        self._plugin = plugin
-
-    def activate(self):
-        # Add reflow paragraph shortcut.
-        actions = []
-        manager = self._window.get_ui_manager()
-        name = 'Reflow'
-        stock_id = None
-        label = 'Reflow'
-        accelerator = ACCELERATOR
-        tooltip = 'Reflow paragraph.'
-        callback = lambda action: self._reflow()
-        actions.append((name, stock_id, label, accelerator, tooltip, callback))
-        self._action_group = gtk.ActionGroup("ReflowPluginActions")
-        self._action_group.add_actions(actions)
+    def do_activate(self):
+        self._action_group = Gtk.ActionGroup("ReflowPluginActions")
+        self._action_group.add_actions([('Reflow', None, 'Reflow', ACCELERATOR,
+                                         'Reflow paragraph.', self._reflow)])
+        manager = self.window.get_ui_manager()
         manager.insert_action_group(self._action_group, -1)
         ui_str = """
             <ui>
@@ -86,25 +61,23 @@ class ReflowWindowHelper:
             """
         self._menu_ui_id = manager.add_ui_from_string(ui_str)
 
-    def deactivate(self):
-        manager = self._window.get_ui_manager()
+    def do_deactivate(self):
+        manager = self.window.get_ui_manager()
         manager.remove_action_group(self._action_group)
         self._action_group = None
         manager.ensure_update()
 
-        self._window = None
-        self._plugin = None
+    def do_update_state(self):
+        self._action_group.set_sensitive(
+            self.window.get_active_document() != None)
 
-    def update_ui(self):
-        pass
-
-    def _reflow(self):
+    def _reflow(self, action=None):
         begin, end = self._get_paragraph()
         if begin == end:
             return
         # We first reflow up to the cursor location, just to get the number of
         # characters from the beginning till the cursor.
-        document = self._window.get_active_document()
+        document = self.window.get_active_document()
         insert_mark = document.get_insert()
         insert_iter = document.get_iter_at_mark(insert_mark)
         before_text = document.get_iter_at_line(begin).get_text(insert_iter)
@@ -135,7 +108,7 @@ class ReflowWindowHelper:
         return text
 
     def _get_line(self, index):
-        document = self._window.get_active_document()
+        document = self.window.get_active_document()
         begin = document.get_iter_at_line(index)
         if begin.ends_line():
             return ""
@@ -156,7 +129,7 @@ class ReflowWindowHelper:
 
     def _get_paragraph(self):
         """return begin and end line of the current paragraph"""
-        document = self._window.get_active_document()
+        document = self.window.get_active_document()
         insert_mark = document.get_insert()
         start = document.get_iter_at_mark(insert_mark).get_line()
         end = start
@@ -188,7 +161,7 @@ class ReflowWindowHelper:
         return start, end
 
     def _replace(self, begin, end, text):
-        document = self._window.get_active_document()
+        document = self.window.get_active_document()
         document.begin_user_action()
         begin_iter = document.get_iter_at_line(begin)
         if end >= document.get_line_count():
@@ -202,8 +175,10 @@ class ReflowWindowHelper:
 
 
 def get_gedit_margin():
-    gconf_client = gconf.client_get_default()
-    margin = gconf_client.get_int('/apps/gedit-2/preferences/editor/'
-                                  'right_margin/right_margin_position')
-    return margin
+    # I don't know how to access the settings in gedit 3...
+    # gconf_client = gconf.client_get_default()
+    # margin = gconf_client.get_int('/apps/gedit-3/preferences/editor/'
+    #                              'right_margin/right_margin_position')
+    # return margin
+    return 79
 

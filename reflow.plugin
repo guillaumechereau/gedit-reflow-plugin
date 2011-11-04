@@ -1,4 +1,4 @@
-[Gedit Plugin]
+[Plugin]
 Loader=python
 Module=reflow
 IAge=2
@@ -7,4 +7,5 @@ Description=reflow paragraph similarly to emacs <Alt>-q
 Authors=Guillaume Chereau <guillaume.chereau@gmail.com>
 Copyright=Copyright © 2011 Guillaume Chereau <guillaume.chereau@gmail.com>
 Website=http://www.gedit.org
+Version=2.0.0
 
