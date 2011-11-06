@@ -71,7 +71,7 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
         self._action_group.set_sensitive(
             self.window.get_active_document() != None)
 
-    def _reflow(self, action=None):
+    def _reflow(self, action, data=None):
         begin, end = self._get_paragraph()
         if begin == end:
             return
