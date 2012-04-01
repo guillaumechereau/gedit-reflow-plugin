@@ -10,8 +10,8 @@ This is similar to emacs <alt>-q command that I love so much.
 Install
 -------
 
-Copy the files reflow.gedit-plugin and reflow.py into your gedit plugin
-directory (on ubuntu this is ~/.gnome2/gedit/plugins/), then restart gedit.
+Copy the files reflow.plugin and reflow.py into your gedit plugin directory (on
+ubuntu 11.10 this is ~/.local/share/gedit/plugins/), then restart gedit.
 
 
 Usage
