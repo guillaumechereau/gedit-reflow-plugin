@@ -65,6 +65,10 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
         manager = self.window.get_ui_manager()
         manager.remove_action_group(self._action_group)
         self._action_group = None
+
+        manager.remove_ui(self._menu_ui_id)
+        self._menu_ui_id = None
+
         manager.ensure_update()
 
     def do_update_state(self):
