@@ -18,7 +18,7 @@
 #  You should have received a copy of the GNU General Public License along with
 #  this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import GObject, Gedit, Gtk
+from gi.repository import GObject, Gedit, Gtk, Gio
 import re
 import textwrap
 
@@ -39,6 +39,7 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
 
     def __init__(self):
         GObject.Object.__init__(self)
+        self.settings = Gio.Settings.new("org.gnome.gedit.preferences.editor")
 
     def do_activate(self):
         self._action_group = Gtk.ActionGroup("ReflowPluginActions")
@@ -105,7 +106,7 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
         first_prefix = splits[0][0]
         prefix = splits[-1][0]
         text = textwrap.fill(text,
-                             width = get_gedit_margin(),
+                             width = self.get_gedit_margin(),
                              initial_indent=first_prefix,
                              subsequent_indent=prefix,
                              drop_whitespace=True)
@@ -178,11 +179,6 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
         document.end_user_action()
 
 
-def get_gedit_margin():
-    # I don't know how to access the settings in gedit 3...
-    # gconf_client = gconf.client_get_default()
-    # margin = gconf_client.get_int('/apps/gedit-3/preferences/editor/'
-    #                              'right_margin/right_margin_position')
-    # return margin
-    return 79
+    def get_gedit_margin(self):
+        return self.settings.get_uint("right-margin-position")
 
