@@ -109,6 +109,7 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
                              width = self.get_gedit_margin(),
                              initial_indent=first_prefix,
                              subsequent_indent=prefix,
+                             break_on_hyphens=False,
                              drop_whitespace=True)
         return text
 
