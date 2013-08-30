@@ -150,7 +150,7 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
                 # Check if we should consider the line as part of the block or
                 # not.  This is a quite empirical formula that works fine in
                 # most of the tested cases.
-                if len(other_prefix) <= prefix and \
+                if len(other_prefix) <= len(prefix) and \
                         len(other_prefix.strip()) >= len(prefix.strip()):
                     start -= 1
                 break
