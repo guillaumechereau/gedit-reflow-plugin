@@ -5,36 +5,64 @@
 #
 #  Copyright (C) 2011 Guillaume Chereau
 #
-#  This program is free software: you can redistribute it and/or modify it under
-#  the terms of the GNU General Public License as published by the Free Software
-#  Foundation, either version 3 of the License, or (at your option) any later
-#  version.
+#  This program is free software: you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
 #
 #  This program is distributed in the hope that it will be useful, but WITHOUT
-#  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-#  FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-#  details.
+#  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+#  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+#  for more details.
 #
-#  You should have received a copy of the GNU General Public License along with
-#  this program.  If not, see <http://www.gnu.org/licenses/>.
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import GObject, Gedit, Gtk, Gio
+import gettext
 import re
 import textwrap
+
+from gi.repository import GObject, Gedit, Gio
+
 
 # TODO:
 # - Replace cursor at the correct position after a reflow.
 # - Support double space characters (like chinese chars).
 # - Fix bug when there is no newline at the end of the document.
 
-ACCELERATOR = '<Alt>q'
+ACCELERATOR = ['<Alt>q']
 
 # Simple to start.
 FILL_REGEX = r'^([#\*"/\-\+]*\s*)+'
 
-class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
 
+class ReflowPluginAppActivatable(GObject.Object, Gedit.AppActivatable):
     __gtype_name__ = "ReflowPlugin"
+    app = GObject.Property(type=Gedit.App)
+
+    def __init__(self):
+        GObject.Object.__init__(self)
+
+    def do_activate(self):
+        self.app.set_accels_for_action("win.reflow", ACCELERATOR)
+
+        # Translate actions below, hardcoding domain here to avoid
+        # complications now
+        _ = lambda s: gettext.dgettext('devhelp', s)
+
+        self.menu_ext = self.extend_menu("tools-section")
+        item = Gio.MenuItem.new(_("Reflow"), "win.reflow")
+        self.menu_ext.prepend_menu_item(item)
+
+    def do_deactivate(self):
+        self.app.set_accels_for_action("win.reflow", [])
+        self.menu_ext = None
+
+    def do_update_state(self):
+        pass
+
+
+class ReflowPluginWindowActivatable(GObject.Object, Gedit.WindowActivatable):
     window = GObject.property(type=Gedit.Window)
 
     def __init__(self):
@@ -42,41 +70,11 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
         self.settings = Gio.Settings.new("org.gnome.gedit.preferences.editor")
 
     def do_activate(self):
-        self._action_group = Gtk.ActionGroup("ReflowPluginActions")
-        self._action_group.add_actions([('Reflow', None, 'Reflow', ACCELERATOR,
-                                         'Reflow paragraph.', self._reflow)])
-        manager = self.window.get_ui_manager()
-        manager.insert_action_group(self._action_group, -1)
-        ui_str = """
-            <ui>
-              <menubar name="MenuBar">
-                <menu name="EditMenu" action="Edit">
-                  <placeholder name="EditOps_6">
-                    <placeholder name="Rewrap">
-                      <menuitem name="reflow" action="Reflow"/>
-                    </placeholder>
-                  </placeholder>
-                </menu>
-              </menubar>
-            </ui>
-            """
-        self._menu_ui_id = manager.add_ui_from_string(ui_str)
+        action = Gio.SimpleAction(name="reflow")
+        action.connect('activate', self.on_reflow_text_activate)
+        self.window.add_action(action)
 
-    def do_deactivate(self):
-        manager = self.window.get_ui_manager()
-        manager.remove_action_group(self._action_group)
-        self._action_group = None
-
-        manager.remove_ui(self._menu_ui_id)
-        self._menu_ui_id = None
-
-        manager.ensure_update()
-
-    def do_update_state(self):
-        self._action_group.set_sensitive(
-            self.window.get_active_document() != None)
-
-    def _reflow(self, action, data=None):
+    def on_reflow_text_activate(self, action, parameter, user_data=None):
         begin, end = self._get_paragraph()
         if begin == end:
             return
@@ -87,7 +85,7 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
         insert_iter = document.get_iter_at_mark(insert_mark)
         before_text = document.get_iter_at_line(begin).get_text(insert_iter)
         text = self._fill(before_text)
-        insert_pos = len(text) # We use it later to restore the cursor pos.
+        insert_pos = len(text)  # We use it later to restore the cursor pos.
         # Fill all the lines in the paragraph
         lines = [self._get_line(i) for i in range(begin, end)]
         text = self._fill("\n".join(lines))
@@ -106,7 +104,7 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
         first_prefix = splits[0][0]
         prefix = splits[-1][0]
         text = textwrap.fill(text,
-                             width = self.get_gedit_margin(),
+                             width=self.get_gedit_margin(),
                              initial_indent=first_prefix,
                              subsequent_indent=prefix,
                              break_on_hyphens=False,
@@ -124,7 +122,7 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
 
     def _split(self, line, prefix=None):
         if prefix is None:
-            m = re.match(FILL_REGEX, line) # XXX: too slow I guess
+            m = re.match(FILL_REGEX, line)  # XXX: too slow I guess
             if not m:
                 return (None, line)
             return (m.group(), line[m.end():])
@@ -161,7 +159,8 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
         search_prefix = prefix if start == end else None
         while end < document.get_line_count():
             end += 1
-            other_prefix, line = self._split(self._get_line(end), search_prefix)
+            other_prefix, line = \
+                self._split(self._get_line(end), search_prefix)
             if other_prefix != prefix or line.strip() == "":
                 break
         return start, end
@@ -179,7 +178,7 @@ class ReflowPlugin(GObject.Object, Gedit.WindowActivatable):
         document.insert(begin_iter, text)
         document.end_user_action()
 
-
     def get_gedit_margin(self):
         return self.settings.get_uint("right-margin-position")
 
+# ex:ts=4:et:
