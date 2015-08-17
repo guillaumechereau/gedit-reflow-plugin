@@ -101,8 +101,16 @@ class ReflowPluginWindowActivatable(GObject.Object, Gedit.WindowActivatable):
         splits = [self._split(x) for x in lines]
         lines = [x[1].strip() for x in splits]
         text = '\n'.join(lines)
-        first_prefix = splits[0][0]
-        prefix = splits[-1][0]
+
+        # for the indentation to work we need at least two lines
+        # paragraph
+        if len(splits) > 1:
+            first_prefix = splits[0][0]
+            prefix = splits[-1][0]
+        else:
+            first_prefix = ''
+            prefix = ''
+
         text = textwrap.fill(text,
                              width=self.get_gedit_margin(),
                              initial_indent=first_prefix,
