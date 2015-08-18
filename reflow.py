@@ -188,5 +188,3 @@ class ReflowPluginWindowActivatable(GObject.Object, Gedit.WindowActivatable):
 
     def get_gedit_margin(self):
         return self.settings.get_uint("right-margin-position")
-
-# ex:ts=4:et:
